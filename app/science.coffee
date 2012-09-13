@@ -3,6 +3,8 @@
 #
 context = (window)
 Civ = context.Civ or= {}
+UI = Civ.UI or= {}
+Utils = Civ.Utils or= {}
 
 class Civ.Discovery
   constructor: ->
