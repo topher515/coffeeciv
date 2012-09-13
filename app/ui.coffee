@@ -54,6 +54,7 @@ UI.HexView = UI.View.extend
     @$el.addClass @model.get 'appearance'
     @$el.attr('id','hex-' + @model.id)
     
+
   render:->
     @$el.html (@template @model.toJSON())
     @

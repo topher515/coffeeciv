@@ -219,6 +219,42 @@
 
   })();
 
+  Civ.SingleUnit = Backbone.Model.extend({
+    initialize: function(attrs, options) {
+      this.hex = options.hex;
+      return this.set({
+        hex: hex
+      });
+    },
+    validMove: function(newHex) {
+      return Boolean(newHex);
+    },
+    moveTo: function(newHex) {
+      var oldHex;
+      if (!this.validMove(newHex)) {
+        throw "Invalid Movement Direction";
+      }
+      oldHex = this.hex;
+      this.hex = newHex;
+      this.trigger('unit:move', {
+        to: newHex,
+        from: oldHex,
+        unit: this
+      });
+      oldHex.trigger('unit:leave', {
+        unit: this,
+        hex: oldHex
+      });
+      return newHex.trigger('unit:arrive', {
+        unit: this,
+        hex: newHex
+      });
+    },
+    move: function(dir) {
+      return moveTo(this.hex[dir]);
+    }
+  });
+
   Civ.City = (function() {
 
     function City(name, opts) {

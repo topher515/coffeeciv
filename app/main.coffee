@@ -170,6 +170,27 @@ class Civ.HexWorld
 
 
 
+Civ.SingleUnit = Backbone.Model.extend
+  initialize: (attrs,options)->
+    @hex = options.hex
+
+  validMove: (newHex)->
+    Boolean newHex
+
+  moveTo: (newHex)->
+    if not @validMove newHex
+      throw "Invalid Movement Direction"
+    oldHex = @hex 
+    @hex = newHex
+    @trigger 'unit:move', (to:newHex, from:oldHex, unit:@)
+    oldHex.trigger 'unit:leave', (unit:@, hex:oldHex)
+    newHex.trigger 'unit:arrive', (unit:@, hex:newHex )
+
+  move: (dir)->
+    moveTo @hex[dir]
+
+
+
 class Civ.City
   
   constructor: (name,opts)->
