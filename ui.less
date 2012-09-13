@@ -1,0 +1,159 @@
+body {
+    background-color: cyan;
+    padding:0;
+    margin:0;
+}
+
+/* Hexes Based on http://jsfiddle.net/mqyCb/154/ */
+
+@hex-background-color:red;
+@hex-border-color:orange;
+
+@cos-30: 0.86602540378;
+@sin-30: .5;
+
+@hex-width: 50px;
+@hex-height: (@hex-width * @cos-30) * 2;
+
+@hex-row-margin-sides:(@hex-width * @sin-30) / 2;
+@hex-row-margin:@hex-width * -0.14;
+@hex-row-margin-abs:0;
+
+@margin-sizing:@hex-width; // WTF? What is this suppsoed to be?
+
+.hexrow {
+    white-space: nowrap;
+    /*right/left margin set at (( width of child div x sin(30) ) / 2) 
+    makes a fairly tight fit; a 3px bottom seems to match*/
+    margin:@hex-row-margin @hex-row-margin-sides; 
+}
+
+.hexrow > div {
+    width: @hex-width;
+    height: @hex-height; /* ( width x cos(30) ) x 2 */
+    /* For margin:
+    right/left = ( width x sin(30) ) makes no overlap 
+    right/left = (( width x sin(30) ) / 2) leaves a narrow separation
+    */
+    margin: 0 (@hex-width * @sin-30)/2; 
+    position: relative;
+    background-color:@hex-background-color;
+    //background-image: url(http://i1166.photobucket.com/albums/q605/Artem_Lebedev/dog-training-collars.jpg);
+    background-position: -(@hex-width * @sin-30) 0; /* -left position -1 x width x sin(30) */
+    background-repeat: no-repeat;
+    background-size: auto 120%;
+    color: #000000;
+    text-align: center;
+    line-height: @hex-height; /*equals height*/
+    display: inline-block;
+}
+
+.hexrow > div:nth-child(odd) {
+    top: @hex-width * @cos-30 / 2; /* ( width x cos(30) / 2 ) */
+}
+
+.hexrow > div:nth-child(even) {
+    top: -1 * ((@hex-width * @cos-30 / 2) + (@hex-row-margin-abs / 2)); /* -1 x( ( width x cos(30) / 2) + (hexrow bottom margin / 2)) */ 
+}
+
+.hexrow > div > div:first-of-type {
+    position: absolute;
+    width: 100%;
+    height: 100%; 
+    top: 0;
+    left: 0;
+    z-index: -1;
+    overflow: hidden;
+    background-image: inherit;
+    background-color:@hex-background-color;
+    
+    -ms-transform:rotate(60deg); /* IE 9 */
+    -moz-transform:rotate(60deg); /* Firefox */
+    -webkit-transform:rotate(60deg); /* Safari and Chrome */
+    -o-transform:rotate(60deg); /* Opera */
+    transform:rotate(60deg);
+}
+
+.hexrow > div > div:first-of-type:before {
+    content: '';
+    position: absolute;
+    width: @hex-width + @margin-sizing; /* width of main + margin sizing */
+    height: 100%;
+    background-image: inherit;
+    background-position: 0 0;
+    background-repeat: no-repeat;
+    background-size: auto 120%;
+    bottom: 0;
+    left: 0;
+    z-index: 1;
+    
+    -ms-transform:rotate(-60deg) translate(-150px, 0); /* IE 9 */
+    -moz-transform:rotate(-60deg) translate(-150px, 0); /* Firefox */
+    -webkit-transform:rotate(-60deg) translate(-150px, 0); /* Safari and Chrome */
+    -o-transform:rotate(-60deg) translate(-150px, 0); /* Opera */
+    transform:rotate(-60deg) translate(-150px, 0);
+    
+    -ms-transform-origin: 0 0; /* IE 9 */
+    -webkit-transform-origin: 0 0; /* Safari and Chrome */
+    -moz-transform-origin: 0 0; /* Firefox */
+    -o-transform-origin: 0 0; /* Opera */
+    transform-origin: 0 0;
+}
+
+.hexrow > div > div:last-of-type {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    z-index: -2;
+    overflow: hidden;
+    background-image: inherit;
+    background-color:@hex-background-color;
+    
+    -ms-transform:rotate(-60deg); /* IE 9 */
+    -moz-transform:rotate(-60deg); /* Firefox */
+    -webkit-transform:rotate(-60deg); /* Safari and Chrome */
+    -o-transform:rotate(-60deg); /* Opera */
+    transform:rotate(-60deg);
+}
+
+.hexrow > div > div:last-of-type:before {
+    content: '';
+    position: absolute;
+    width: @hex-width + @margin-sizing; /* starting width + margin sizing */
+    height: 100%;
+    background-image: inherit;
+    background-position: 0 0;
+    background-repeat: no-repeat;
+    background-size: auto 120%;
+    bottom: 0;
+    left: 0;
+    z-index: 1;
+    
+    /*translate properties are initial width (100px) and half height (173.2 / 2 = 86.6) */
+    -ms-transform:rotate(60deg) translate(@hex-width, @hex-height/2); /* IE 9 */
+    -moz-transform:rotate(60deg) translate(@hex-width, @hex-height/2); /* Firefox */
+    -webkit-transform:rotate(60deg) translate(@hex-width, @hex-height/2); /* Safari and Chrome */
+    -o-transform:rotate(60deg) translate(@hex-width, @hex-height/2); /* Opera */
+    transform:rotate(60deg) translate(@hex-width, @hex-height/2);
+    
+    -ms-transform-origin: 100% 0; /* IE 9 */
+    -webkit-transform-origin: 100% 0; /* Safari and Chrome */
+    -moz-transform-origin: 100% 0; /* Firefox */
+    -o-transform-origin: 100% 0; /* Opera */
+    transform-origin: 100% 0;
+}
+
+.hexrow > div > span {
+    display: inline-block;
+    margin: 0 0;
+    line-height: 1.1;
+    vertical-align: middle;
+    white-space: normal; 
+}
+
+
+
+​
