@@ -26,6 +26,21 @@ body {
 
 @margin-sizing:@hex-width; // WTF? What is this suppsoed to be?
 
+
+@unit-box-width:round(@hex-width/2);
+@unit-box-height:(@hex-height/2);
+
+
+.unit {
+    background-color: pink;
+    width:@unit-box-width;
+    height:@unit-box-height;
+    position:absolute;
+    left:10px;
+    top:10px;
+}
+
+
 .hexrow {
     white-space: nowrap;
     /*right/left margin set at (( width of child div x sin(30) ) / 2) 
@@ -61,7 +76,7 @@ body {
     top: -1 * ((@hex-width * @cos-30 / 2) + (@hex-row-margin-abs / 2)); /* -1 x( ( width x cos(30) / 2) + (hexrow bottom margin / 2)) */ 
 }
 
-.hexrow > div.hex > div:first-of-type {
+.hexrow > div.hex > div.hex-part.hex-part-1 {
     position: absolute;
     width: 100%;
     height: 100%; 
@@ -79,7 +94,7 @@ body {
     transform:rotate(60deg);
 }
 
-.hexrow > div.hex > div:first-of-type:before {
+.hexrow > div.hex > div.hex-part.hex-part-1:before {
     content: '';
     position: absolute;
     width: @hex-width + @margin-sizing; /* width of main + margin sizing */
@@ -105,7 +120,7 @@ body {
     transform-origin: 0 0;
 }
 
-.hexrow > div.hex > div:last-of-type {
+.hexrow > div.hex > div.hex-part.hex-part-2 {
     content: '';
     position: absolute;
     width: 100%;
@@ -124,7 +139,7 @@ body {
     transform:rotate(-60deg);
 }
 
-.hexrow > div.hex > div:last-of-type:before {
+.hexrow > div.hex > div.hex-part.hex-part-2:before {
     content: '';
     position: absolute;
     width: @hex-width + @margin-sizing; /* starting width + margin sizing */
@@ -162,7 +177,7 @@ body {
 
 .setHexColor(@theColor) {
   background-color:@theColor;
-  div {
+  > div.hex-part {
     background-color:@theColor;
   }
 }
@@ -174,5 +189,6 @@ body {
   .setHexColor(green);
 }
 
-
-​
+.hex.root { 
+    .setHexColor(purple);
+}

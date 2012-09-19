@@ -19,7 +19,7 @@ class Utils.Cycler
 
 
 #class Civ.Hex extends Backbone.Model
-Civ.Hex = Backbone.Model.extend # TODO: Convert this back into coffeescript inheritance
+Civ.Hex = Backbone.Model.extend # TODO: Convert this back into coffeescript style inheritance
   defaults:
     appearance:'grass'
     movementCosts:
@@ -31,6 +31,7 @@ Civ.Hex = Backbone.Model.extend # TODO: Convert this back into coffeescript inhe
     food:1.0
     gold:1.0
     prod:1.0
+    isRoot:false
 
 
   #constructor: (world, opts)->
@@ -48,7 +49,9 @@ Civ.Hex = Backbone.Model.extend # TODO: Convert this back into coffeescript inhe
     @world.registerHex @
     _.bindAll @
 
-
+  registerUnit:(unit)->
+    @trigger 'unit:create', (unit:unit, hex:@)
+    @trigger 'unit:arrive', (unit:unit, hex:@)
 
   getNames: ->
     return ['n','ne','se','s','sw','nw']
@@ -131,19 +134,26 @@ class Civ.HexSet
 
 
 
-class Civ.HexWorld
-  constructor: (options)->
+Civ.HexWorld = Backbone.Model.extend
+  defaults:
+    size: 100
+
+  initialize: (options)->
     @hexes = {}
     @root = null
-    @size = options.size or 100
     @count = 0
-
     @visited = {}
+    _.bindAll @
+
+  bubble: (obj, evtName)->
+    obj.on evtName, ((evt)-> @trigger evtName, evt), @
 
   registerHex: (hex)->
     hex.id = @count
     @hexes[@count] = hex
     @count += 1
+
+    @bubble hex, 'unit:create'
 
 
   _buildHexesAround: (hex)->
@@ -156,7 +166,7 @@ class Civ.HexWorld
         opName = newHex.getOppositeName(name)
         # Be sure the new hex's reference is set back to this hex
         newHex[opName] = hex 
-        if @count >= @size
+        if @count >= @get 'size'
           return # TODO: Maybe I should throw something here?
 
     for hex in @current.getNeighbors()
@@ -165,14 +175,18 @@ class Civ.HexWorld
 
   buildHexesCircularly: ()->
     cnt = 0
-    @current = @root = new Civ.Hex world:@
+    @current = @root = new Civ.Hex (isRoot:true, world:@)
     @_buildHexesAround @root
 
 
 
 Civ.SingleUnit = Backbone.Model.extend
-  initialize: (attrs,options)->
+  initialize: (options)->
     @hex = options.hex
+    @civ = options.civ
+    @hex.registerUnit @
+    @civ.registerUnit @
+
 
   validMove: (newHex)->
     Boolean newHex
@@ -216,31 +230,37 @@ class Civ.City
 
 # Goverment
 
-class Civ.Government
-  constructor: (civ)->
-    @civ = civ
+Civ.Government = Backbone.Model.extend
+  initialize: (opts)->
+    @civ = opts.civ
 
-class Tribal extends Civ.Government
+Civ.Tribal = Civ.Government.extend
   name: "Tribal"
 
-class Monarchy extends Civ.Government
+Civ.Monarchy = Civ.Government.extend
   name: "Monarchy"
 
 
 # Civilization
 
-class Civ.Civilization
+Civ.Civilization = Backbone.Model.extend
+  defaults:
+    name: "Unnamed"
 
-  constructor: (player)->
-    @player = player
+  initialize: (attrs)->
+    @player = attrs.player
     # Gov
-    @government = new Civ.Tribal @
+    @government = new Civ.Tribal civ:@
     # Sci
     @scienceGraph = new Civ.ScienceGraph
-    @currentResearch = 
+    @currentResearch = null
     # Cities
     @cities = []
     @units = []
+
+  registerUnit: (unit)->
+    @player.registerUnit unit
+    @units.push unit
 
   getCities: -> @cities
   getUnits: -> @units
@@ -259,5 +279,11 @@ class Civ.Civilization
 
 
 
-class Civ.Player
-  constructor: ->
+Civ.Player = Backbone.Model.extend
+  initialize:(opts)->
+
+Civ.HumanPlayer = Civ.Player.extend
+  registerUnit:(unit)->
+    @trigger 'selectable:registered', unit
+
+  

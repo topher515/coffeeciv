@@ -79,18 +79,60 @@
         _results.push(fn(sv));
       }
       return _results;
+    },
+    bubble: function(obj, evtName) {
+      return obj.on(evtName, (function(evt) {
+        return this.trigger(evtName, evt);
+      }), this);
     }
+  });
+
+  UI.SelectableView = UI.View.extend({
+    events: {
+      "click": "handleSelect"
+    },
+    handleSelect: function() {
+      return this.trigger("select:" + this.selectName, {
+        view: this,
+        name: this.selectName
+      });
+    }
+  });
+
+  UI.SingleUnitView = UI.SelectableView.extend({
+    className: "unit",
+    selectName: "unit"
   });
 
   UI.HexView = UI.View.extend({
     template: tpl('#hex-tpl'),
     className: "hex",
     initialize: function(options) {
+      this.ux = options.ux;
       this.$el.addClass(this.model.get('appearance'));
-      return this.$el.attr('id', 'hex-' + this.model.id);
+      this.$el.attr('id', 'hex-' + this.model.id);
+      if (this.model.get('isRoot')) {
+        this.$el.addClass('root');
+      }
+      this.model.on('unit:arrive', this.handleUnitArrive, this);
+      return this.model.on('unit:leave', this.handleUnitLeave, this);
+    },
+    handleUnitArrive: function(evt) {
+      var sv;
+      sv = this.setSubview(new UI.SingleUnitView({
+        model: evt.unit
+      }));
+      this.ux.registerSelectable(sv);
+      return this.render();
+    },
+    handleUnitLeave: function(evt) {
+      var sv;
+      sv = this.removeSubview(evt.unit);
+      this.trigger('selectable:destroy', sv);
+      return this.render();
     },
     render: function() {
-      this.$el.html(this.template(this.model.toJSON()));
+      this.renderWithSubviews();
       return this;
     }
   });
@@ -98,11 +140,13 @@
   UI.HexRowView = UI.View.extend({
     className: "hexrow",
     initialize: function(options) {
-      return this.rootHex = options.rootHex;
+      this.rootHex = options.rootHex;
+      return this.ux = options.ux;
     },
     newHexView: function(model) {
       return new UI.HexView({
-        model: model
+        model: model,
+        ux: this.ux
       });
     },
     render: function() {
@@ -126,11 +170,14 @@
   UI.HexWorldView = UI.View.extend({
     el: '#hexworld',
     initialize: function(options) {
-      return this.rootHex = options.rootHex;
+      this.rootHex = this.model.root;
+      return this.ux = options.ux;
     },
     newHexRowView: function(model) {
-      return new UI.HexRowView({
-        rootHex: this.rootHex
+      var row;
+      return row = new UI.HexRowView({
+        rootHex: model,
+        ux: this.ux
       });
     },
     render: function() {
@@ -148,6 +195,34 @@
       });
       this.rootHex.applyUp(prepender);
       return this;
+    }
+  });
+
+  UI.UXController = UI.View.extend({
+    initialize: function(opts) {
+      return this.selectables = [];
+    },
+    registerSelectable: function(selectableView) {
+      this.selectables.push(selectableView);
+      return this.bubble(selectableView, 'select:unit');
+    }
+  });
+
+  UI.HumanController = UI.View.extend({
+    initialize: function(opts) {
+      this.world = opts.world;
+      this.humanPlayer = opts.humanPlayer;
+      this.ux = opts.ux;
+      this.ux.on('select:unit', this.handleSelectUnit, this);
+      return this.selectedUnitView = null;
+    },
+    handleSelectUnit: function(evt) {
+      var _ref, _ref1;
+      if ((_ref = this.selectedUnitView) != null) {
+        _ref.$el.removeClass('selected');
+      }
+      this.selectedUnitView = evt.view;
+      return (_ref1 = this.selectedUnitView) != null ? _ref1.$el.addClass('selected') : void 0;
     }
   });
 
