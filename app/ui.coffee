@@ -45,18 +45,49 @@ UI.View = Backbone.View.extend
     fn = (sv)-> $elem.append sv.render().el
     fn sv for sv in @getSubviews()
 
+  bubble: (obj, evtName)->
+    obj.on evtName, ((evt)-> @trigger evtName, evt), @
+
+
+UI.SelectableView = UI.View.extend
+  events:
+    "click":"handleSelect"
+  handleSelect:->
+    @trigger "select:#{ @selectName }", (view:@, name:@selectName)
+
+
+
+UI.SingleUnitView = UI.SelectableView.extend
+  className:"unit"
+  selectName:"unit"
+
 
 
 UI.HexView = UI.View.extend
   template: tpl '#hex-tpl'
   className:"hex"
   initialize:(options)->
+    @ux = options.ux
     @$el.addClass @model.get 'appearance'
     @$el.attr('id','hex-' + @model.id)
-    
+    if @model.get 'isRoot'
+      @$el.addClass 'root'
+
+    @model.on 'unit:arrive', @handleUnitArrive, @
+    @model.on 'unit:leave', @handleUnitLeave, @
+
+  handleUnitArrive:(evt)->
+    sv = @setSubview (new UI.SingleUnitView model:evt.unit)
+    @ux.registerSelectable sv
+    @render()
+
+  handleUnitLeave:(evt)->
+    sv = @removeSubview evt.unit
+    @trigger 'selectable:destroy', sv
+    @render()
 
   render:->
-    @$el.html (@template @model.toJSON())
+    @renderWithSubviews()
     @
 
 
@@ -64,9 +95,10 @@ UI.HexRowView = UI.View.extend
   className:"hexrow"
   initialize:(options)->
     @rootHex = options.rootHex
+    @ux = options.ux
 
   newHexView: (model)->
-    new UI.HexView model:model
+    new UI.HexView (model:model, ux:@ux)
 
   render:->
     # render methodology
@@ -86,10 +118,13 @@ UI.HexRowView = UI.View.extend
 UI.HexWorldView = UI.View.extend
   el:'#hexworld'
   initialize:(options)->
-    @rootHex = options.rootHex
+    @rootHex = @model.root
+    @ux = options.ux
+
+
 
   newHexRowView: (model)->
-    new UI.HexRowView rootHex:@rootHex
+    row = new UI.HexRowView (rootHex:model, ux:@ux)
 
   render:->
     # render methodology
@@ -109,8 +144,25 @@ UI.HexWorldView = UI.View.extend
     @
 
 
+UI.UXController = UI.View.extend
+
+  initialize:(opts)->
+    @selectables = []
+
+  registerSelectable:(selectableView)->
+    @selectables.push selectableView
+    @bubble selectableView, 'select:unit'
 
 
+UI.HumanController = UI.View.extend
+  initialize:(opts)->
+    @world = opts.world
+    @humanPlayer = opts.humanPlayer
+    @ux = opts.ux
+    @ux.on 'select:unit', @handleSelectUnit, @
+    @selectedUnitView = null
 
-
-
+  handleSelectUnit:(evt)->
+    @selectedUnitView?.$el.removeClass 'selected'
+    @selectedUnitView = evt.view
+    @selectedUnitView?.$el.addClass 'selected'
