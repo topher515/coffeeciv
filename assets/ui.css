@@ -8,12 +8,18 @@ body {
 }
 /* Hexes Based on http://jsfiddle.net/mqyCb/154/ */
 .unit {
-  background-color: pink;
-  width: 15px;
-  height: 25.9807621134px;
   position: absolute;
   left: 10px;
   top: 10px;
+}
+.unit.selected {
+  border: 2px dashed white;
+}
+.unit > .inner {
+  background-color: pink;
+  width: 15px;
+  height: 25.9807621134px;
+  margin: 3px;
 }
 .hexrow {
   white-space: nowrap;

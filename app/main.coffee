@@ -201,7 +201,7 @@ Civ.SingleUnit = Backbone.Model.extend
     newHex.trigger 'unit:arrive', (unit:@, hex:newHex )
 
   move: (dir)->
-    moveTo @hex[dir]
+    @moveTo @hex[dir]
 
 
 

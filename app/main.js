@@ -263,7 +263,7 @@
       });
     },
     move: function(dir) {
-      return moveTo(this.hex[dir]);
+      return this.moveTo(this.hex[dir]);
     }
   });
 

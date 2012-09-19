@@ -84,6 +84,9 @@
       return obj.on(evtName, (function(evt) {
         return this.trigger(evtName, evt);
       }), this);
+    },
+    unbubble: function(obj, evtName) {
+      return obj.off(evtName);
     }
   });
 
@@ -101,7 +104,11 @@
 
   UI.SingleUnitView = UI.SelectableView.extend({
     className: "unit",
-    selectName: "unit"
+    selectName: "unit",
+    render: function() {
+      this.$el.html('<div class="inner"></div>');
+      return this;
+    }
   });
 
   UI.HexView = UI.View.extend({
@@ -128,7 +135,7 @@
     handleUnitLeave: function(evt) {
       var sv;
       sv = this.removeSubview(evt.unit);
-      this.trigger('selectable:destroy', sv);
+      this.ux.unregisterSelectable(sv);
       return this.render();
     },
     render: function() {
@@ -202,9 +209,15 @@
     initialize: function(opts) {
       return this.selectables = [];
     },
+    handleKeydown: function(event) {
+      return event.keyCode;
+    },
     registerSelectable: function(selectableView) {
       this.selectables.push(selectableView);
       return this.bubble(selectableView, 'select:unit');
+    },
+    unregisterSelectable: function(selectableView) {
+      return this.unbubble(selectableView, 'select:unit');
     }
   });
 
@@ -214,7 +227,34 @@
       this.humanPlayer = opts.humanPlayer;
       this.ux = opts.ux;
       this.ux.on('select:unit', this.handleSelectUnit, this);
-      return this.selectedUnitView = null;
+      this.ux.on('deselect:unit', this.handleDeselectUnit, this);
+      this.selectedUnitView = null;
+      return this.initKeyCommands();
+    },
+    initKeyCommands: function() {
+      var self;
+      self = this;
+      Mousetrap.bind("esc", function() {
+        return self.handleDeselectUnit();
+      });
+      Mousetrap.bind("up", function() {
+        return self.selectedUnitView.model.move("n");
+      });
+      Mousetrap.bind("down", function() {
+        return self.selectedUnitView.model.move("s");
+      });
+      Mousetrap.bind("left up", function() {
+        return self.selectedUnitView.model.move("nw");
+      });
+      Mousetrap.bind("left down", function() {
+        return self.selectedUnitView.model.move("sw");
+      });
+      Mousetrap.bind("right up", function() {
+        return self.selectedUnitView.model.move("ne");
+      });
+      return Mousetrap.bind("right down", function() {
+        return self.selectedUnitView.model.move("se");
+      });
     },
     handleSelectUnit: function(evt) {
       var _ref, _ref1;
@@ -223,6 +263,10 @@
       }
       this.selectedUnitView = evt.view;
       return (_ref1 = this.selectedUnitView) != null ? _ref1.$el.addClass('selected') : void 0;
+    },
+    handleDeselectUnit: function(evt) {
+      var _ref;
+      return (_ref = this.selectedUnitView) != null ? _ref.$el.removeClass('selected') : void 0;
     }
   });
 

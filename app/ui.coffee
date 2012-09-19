@@ -48,6 +48,9 @@ UI.View = Backbone.View.extend
   bubble: (obj, evtName)->
     obj.on evtName, ((evt)-> @trigger evtName, evt), @
 
+  unbubble: (obj, evtName)->
+    obj.off evtName
+
 
 UI.SelectableView = UI.View.extend
   events:
@@ -60,7 +63,9 @@ UI.SelectableView = UI.View.extend
 UI.SingleUnitView = UI.SelectableView.extend
   className:"unit"
   selectName:"unit"
-
+  render:->
+    @$el.html('<div class="inner"></div>')
+    @
 
 
 UI.HexView = UI.View.extend
@@ -83,7 +88,7 @@ UI.HexView = UI.View.extend
 
   handleUnitLeave:(evt)->
     sv = @removeSubview evt.unit
-    @trigger 'selectable:destroy', sv
+    @ux.unregisterSelectable sv
     @render()
 
   render:->
@@ -149,20 +154,54 @@ UI.UXController = UI.View.extend
   initialize:(opts)->
     @selectables = []
 
+  handleKeydown:(event)->
+    event.keyCode
+
   registerSelectable:(selectableView)->
     @selectables.push selectableView
     @bubble selectableView, 'select:unit'
 
+  unregisterSelectable:(selectableView)->
+    @unbubble selectableView, 'select:unit'
+
 
 UI.HumanController = UI.View.extend
+
   initialize:(opts)->
     @world = opts.world
     @humanPlayer = opts.humanPlayer
     @ux = opts.ux
+
     @ux.on 'select:unit', @handleSelectUnit, @
+    @ux.on 'deselect:unit', @handleDeselectUnit, @
+
     @selectedUnitView = null
+
+    @initKeyCommands()
+
+  initKeyCommands:->
+    self = @
+    Mousetrap.bind "esc", ->
+      self.handleDeselectUnit()
+    Mousetrap.bind "up", ->
+      self.selectedUnitView.model.move "n"
+    Mousetrap.bind "down", ->
+      self.selectedUnitView.model.move "s"
+
+    Mousetrap.bind "left up", ->
+      self.selectedUnitView.model.move "nw"
+    Mousetrap.bind "left down", ->
+      self.selectedUnitView.model.move "sw"
+
+    Mousetrap.bind "right up", ->
+      self.selectedUnitView.model.move "ne"
+    Mousetrap.bind "right down", ->
+      self.selectedUnitView.model.move "se"
 
   handleSelectUnit:(evt)->
     @selectedUnitView?.$el.removeClass 'selected'
     @selectedUnitView = evt.view
     @selectedUnitView?.$el.addClass 'selected'
+
+  handleDeselectUnit:(evt)->
+    @selectedUnitView?.$el.removeClass 'selected'
