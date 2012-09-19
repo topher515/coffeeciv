@@ -9,8 +9,8 @@ body {
 /* Hexes Based on http://jsfiddle.net/mqyCb/154/ */
 .unit {
   position: absolute;
-  left: 10px;
-  top: 10px;
+  left: 0px;
+  top: 0px;
 }
 .unit.selected {
   border: 2px dashed white;

@@ -95,10 +95,10 @@ Civ.Hex = Backbone.Model.extend # TODO: Convert this back into coffeescript styl
       next = cycler.next()
 
   applyRight:(fn,opts)->
-    @applyCyclic fn, ['nw','sw'], opts
+    @applyCyclic fn, ['ne','se'], opts
 
   applyLeft:(fn,opts)->
-    @applyCyclic fn, ['ne','se'], opts
+    @applyCyclic fn, ['nw','sw'], opts
 
   applyUp:(fn,opts)->
     @applyCyclic fn, ['n'], opts

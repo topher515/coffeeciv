@@ -179,24 +179,27 @@ UI.HumanController = UI.View.extend
 
     @initKeyCommands()
 
+  move:(dir)->
+    @selectedUnitView?.model.move dir
+
   initKeyCommands:->
     self = @
     Mousetrap.bind "esc", ->
       self.handleDeselectUnit()
     Mousetrap.bind "up", ->
-      self.selectedUnitView.model.move "n"
+      self.move "n"
     Mousetrap.bind "down", ->
-      self.selectedUnitView.model.move "s"
+      self.move "s"
 
     Mousetrap.bind "left up", ->
-      self.selectedUnitView.model.move "nw"
+      self.move "nw"
     Mousetrap.bind "left down", ->
-      self.selectedUnitView.model.move "sw"
+      self.move "sw"
 
     Mousetrap.bind "right up", ->
-      self.selectedUnitView.model.move "ne"
+      self.move "ne"
     Mousetrap.bind "right down", ->
-      self.selectedUnitView.model.move "se"
+      self.move "se"
 
   handleSelectUnit:(evt)->
     @selectedUnitView?.$el.removeClass 'selected'

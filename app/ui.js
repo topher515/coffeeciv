@@ -231,6 +231,10 @@
       this.selectedUnitView = null;
       return this.initKeyCommands();
     },
+    move: function(dir) {
+      var _ref;
+      return (_ref = this.selectedUnitView) != null ? _ref.model.move(dir) : void 0;
+    },
     initKeyCommands: function() {
       var self;
       self = this;
@@ -238,22 +242,22 @@
         return self.handleDeselectUnit();
       });
       Mousetrap.bind("up", function() {
-        return self.selectedUnitView.model.move("n");
+        return self.move("n");
       });
       Mousetrap.bind("down", function() {
-        return self.selectedUnitView.model.move("s");
+        return self.move("s");
       });
       Mousetrap.bind("left up", function() {
-        return self.selectedUnitView.model.move("nw");
+        return self.move("nw");
       });
       Mousetrap.bind("left down", function() {
-        return self.selectedUnitView.model.move("sw");
+        return self.move("sw");
       });
       Mousetrap.bind("right up", function() {
-        return self.selectedUnitView.model.move("ne");
+        return self.move("ne");
       });
       return Mousetrap.bind("right down", function() {
-        return self.selectedUnitView.model.move("se");
+        return self.move("se");
       });
     },
     handleSelectUnit: function(evt) {

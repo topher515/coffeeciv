@@ -121,10 +121,10 @@
       return _results;
     },
     applyRight: function(fn, opts) {
-      return this.applyCyclic(fn, ['nw', 'sw'], opts);
+      return this.applyCyclic(fn, ['ne', 'se'], opts);
     },
     applyLeft: function(fn, opts) {
-      return this.applyCyclic(fn, ['ne', 'se'], opts);
+      return this.applyCyclic(fn, ['nw', 'sw'], opts);
     },
     applyUp: function(fn, opts) {
       return this.applyCyclic(fn, ['n'], opts);
