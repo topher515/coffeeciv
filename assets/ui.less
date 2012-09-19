@@ -32,12 +32,18 @@ body {
 
 
 .unit {
-    background-color: pink;
-    width:@unit-box-width;
-    height:@unit-box-height;
     position:absolute;
-    left:10px;
-    top:10px;
+    left:0px;
+    top:0px;
+    &.selected {
+        border:2px dashed white;
+    }
+    > .inner {
+        background-color: pink;
+        width:@unit-box-width;
+        height:@unit-box-height;
+        margin:3px;
+    }
 }
 
 
