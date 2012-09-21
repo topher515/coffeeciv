@@ -9,7 +9,7 @@
       size: 40,
       ux: ux
     });
-    world.buildHexesCircularly();
+    world.buildHexesInGrid();
     ctx.human = new Civ.HumanPlayer;
     new Civ.UI.HumanController({
       humanPlayer: human,

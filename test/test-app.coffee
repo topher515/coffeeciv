@@ -4,7 +4,7 @@ $ ->
 
   # Build world
   ctx.world = new Civ.HexWorld (size:40, ux:ux)
-  world.buildHexesCircularly()
+  world.buildHexesInGrid()
 
   ctx.human = new Civ.HumanPlayer 
   new Civ.UI.HumanController humanPlayer:human, ux:ux

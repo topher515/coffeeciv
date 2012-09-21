@@ -170,13 +170,16 @@
 
   Civ.HexWorld = Backbone.Model.extend({
     defaults: {
-      size: 100
+      size: 100,
+      width: 10,
+      height: 10
     },
     initialize: function(options) {
       this.hexes = {};
       this.root = null;
       this.count = 0;
       this.visited = {};
+      this.hexGrid = {};
       return _.bindAll(this);
     },
     bubble: function(obj, evtName) {
@@ -228,6 +231,98 @@
         world: this
       });
       return this._buildHexesAround(this.root);
+    },
+    _buildHexInDir: function(current, dir) {
+      var opDir;
+      if (current[dir]) {
+        return false;
+      }
+      current[dir] = new Civ.Hex({
+        world: this
+      });
+      opDir = current.getOppositeName(dir);
+      current[dir][opDir] = current;
+      return true;
+    },
+    buildHexesSpirally: function() {
+      var built, cameFrom, current, newDir, spiralOrder, _results;
+      spiralOrder = {
+        'n': ['se', 'ne', 'n'],
+        'ne': ['s', 'se', 'ne'],
+        'se': ['sw', 's', 'se'],
+        'sw': ['n', 'nw', 'sw'],
+        'nw': ['ne', 'n', 'nw'],
+        's': ['nw', 'ne', 's']
+      };
+      current = this.root = new Civ.Hex({
+        isRoot: true,
+        world: this
+      });
+      cameFrom = 'sw';
+      _results = [];
+      while (this.count < this.get('size')) {
+        _results.push((function() {
+          var _i, _len, _ref, _results1;
+          _ref = spiralOrder[cameFrom];
+          _results1 = [];
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            newDir = _ref[_i];
+            built = this._buildHexInDir(current, newDir);
+            if (built) {
+              cameFrom = newDir;
+              current = current[newDir];
+              break;
+            } else {
+              _results1.push(void 0);
+            }
+          }
+          return _results1;
+        }).call(this));
+      }
+      return _results;
+    },
+    buildHexesInGrid: function() {
+      var center, coord, hex, hexGrid, x, y, _i, _j, _k, _l, _m, _ref, _ref1, _ref2, _ref3, _ref4, _results;
+      hexGrid = this.hexGrid;
+      center = "" + (this.get('width') / 2) + "," + (this.get('height') / 2);
+      for (x = _i = 0, _ref = this.get('width'); 0 <= _ref ? _i <= _ref : _i >= _ref; x = 0 <= _ref ? ++_i : --_i) {
+        for (y = _j = 0, _ref1 = this.get('height'); 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; y = 0 <= _ref1 ? ++_j : --_j) {
+          coord = "" + x + "," + y;
+          hexGrid[coord] = new Civ.Hex({
+            world: this
+          });
+        }
+      }
+      this.root = hexGrid["0,0"];
+      for (x = _k = 0, _ref2 = this.get('width'); _k <= _ref2; x = _k += 2) {
+        for (y = _l = 0, _ref3 = this.get('height'); 0 <= _ref3 ? _l <= _ref3 : _l >= _ref3; y = 0 <= _ref3 ? ++_l : --_l) {
+          hex = hexGrid["" + x + "," + y];
+          hex.n = hexGrid["" + x + "," + (y - 1)];
+          hex.ne = hexGrid["" + (x + 1) + "," + y];
+          hex.se = hexGrid["" + (x + 1) + "," + (y + 1)];
+          hex.s = hexGrid["" + x + "," + (y + 1)];
+          hex.sw = hexGrid["" + (x - 1) + "," + (y + 1)];
+          hex.nw = hexGrid["" + (x - 1) + "," + y];
+        }
+      }
+      _results = [];
+      for (x = _m = 1, _ref4 = this.get('width') - 1; _m <= _ref4; x = _m += 2) {
+        _results.push((function() {
+          var _n, _ref5, _results1;
+          _results1 = [];
+          for (y = _n = 0, _ref5 = this.get('height'); 0 <= _ref5 ? _n <= _ref5 : _n >= _ref5; y = 0 <= _ref5 ? ++_n : --_n) {
+            hex = hexGrid["" + x + "," + y];
+            hex.n = hexGrid["" + x + "," + (y - 1)];
+            hex.ne = hexGrid["" + (x + 1) + "," + (y - 1)];
+            hex.se = hexGrid["" + (x + 1) + "," + y];
+            hex.s = hexGrid["" + x + "," + (y + 1)];
+            hex.sw = hexGrid["" + (x - 1) + "," + y];
+            _results1.push(hex.nw = hexGrid["" + (x - 1) + "," + (y - 1)]);
+          }
+          return _results1;
+        }).call(this));
+      }
+      return _results;
     }
   });
 

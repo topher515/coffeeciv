@@ -137,12 +137,15 @@ class Civ.HexSet
 Civ.HexWorld = Backbone.Model.extend
   defaults:
     size: 100
+    width: 10
+    height: 10
 
   initialize: (options)->
     @hexes = {}
     @root = null
     @count = 0
     @visited = {}
+    @hexGrid = {}
     _.bindAll @
 
   bubble: (obj, evtName)->
@@ -157,7 +160,7 @@ Civ.HexWorld = Backbone.Model.extend
 
 
   _buildHexesAround: (hex)->
-    @visited[hex.id] = true # Mark this hax as visited
+    @visited[hex.id] = true # Mark this hex as visited
     for name in hex.getNames()
       if not hex[name]
         newHex = new Civ.Hex world:@
@@ -178,6 +181,69 @@ Civ.HexWorld = Backbone.Model.extend
     @current = @root = new Civ.Hex (isRoot:true, world:@)
     @_buildHexesAround @root
 
+
+  _buildHexInDir: (current,dir)->
+    if current[dir]
+      return false
+    # Setup neighbor hex
+    current[dir] = new Civ.Hex world:@
+    # Link neighbor hex to *this* hex
+    opDir = current.getOppositeName dir
+    current[dir][opDir] = current
+    return true
+
+  buildHexesSpirally: ->
+    # Given they you've come from 'key'
+    # try traveling in 'value' directions (in order)
+    # and you should move in a spiral
+    spiralOrder = {
+      'n':['se','ne','n']
+      'ne':['s','se','ne']
+      'se':['sw','s','se']
+      'sw':['n','nw','sw']
+      'nw':['ne','n','nw']
+      's':['nw','ne','s']
+    }
+    current = @root = new Civ.Hex (isRoot:true, world:@)
+    cameFrom = 'sw'
+    while @count < @get 'size'
+      for newDir in spiralOrder[cameFrom]
+        built = @_buildHexInDir current, newDir
+        if built
+          cameFrom = newDir
+          current = current[newDir]
+          break
+
+  buildHexesInGrid: ->
+    hexGrid = @hexGrid
+    center = "#{ @get('width') / 2 },#{ @get('height') / 2 }"
+
+    for x in [0..@get 'width']
+      for y in [0..@get 'height']
+        coord = "#{x},#{y}"
+        hexGrid[coord] = new Civ.Hex world:@
+
+    @root = hexGrid["0,0"]
+
+    for x in [0..@get 'width'] by 2
+      for y in [0..@get 'height']
+        hex = hexGrid["#{x},#{y}"]
+        hex.n = hexGrid["#{x},#{y-1}"]
+        hex.ne = hexGrid["#{x+1},#{y}"]
+        hex.se = hexGrid["#{x+1},#{y+1}"]
+        hex.s = hexGrid["#{x},#{y+1}"]
+        hex.sw = hexGrid["#{x-1},#{y+1}"]
+        hex.nw = hexGrid["#{x-1},#{y}"]
+
+    for x in [1..@get('width') - 1] by 2
+      for y in [0..@get 'height']
+        hex = hexGrid["#{x},#{y}"]
+        hex.n = hexGrid["#{x},#{y-1}"]
+        hex.ne = hexGrid["#{x+1},#{y-1}"]
+        hex.se = hexGrid["#{x+1},#{y}"]
+        hex.s = hexGrid["#{x},#{y+1}"]
+        hex.sw = hexGrid["#{x-1},#{y}"]
+        hex.nw = hexGrid["#{x-1},#{y-1}"]
 
 
 Civ.SingleUnit = Backbone.Model.extend
