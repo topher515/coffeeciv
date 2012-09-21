@@ -55,16 +55,6 @@
       this.world.registerHex(this);
       return _.bindAll(this);
     },
-    registerUnit: function(unit) {
-      this.trigger('unit:create', {
-        unit: unit,
-        hex: this
-      });
-      return this.trigger('unit:arrive', {
-        unit: unit,
-        hex: this
-      });
-    },
     getNames: function() {
       return ['n', 'ne', 'se', 's', 'sw', 'nw'];
     },
@@ -170,8 +160,7 @@
 
   Civ.HexWorld = Backbone.Model.extend({
     defaults: {
-      size: 100,
-      width: 10,
+      width: 20,
       height: 10
     },
     initialize: function(options) {
@@ -330,8 +319,15 @@
     initialize: function(options) {
       this.hex = options.hex;
       this.civ = options.civ;
-      this.hex.registerUnit(this);
-      return this.civ.registerUnit(this);
+      this.hex.trigger('unit:create', {
+        unit: this,
+        hex: this.hex
+      });
+      this.hex.trigger('unit:arrive', {
+        unit: this,
+        hex: this.hex
+      });
+      return this.civ.registerUnit(unit);
     },
     validMove: function(newHex) {
       return Boolean(newHex);
@@ -359,40 +355,90 @@
     },
     move: function(dir) {
       return this.moveTo(this.hex[dir]);
+    },
+    disband: function() {
+      this.hex.trigger('unit:leave', {
+        unit: this,
+        hex: this.hex
+      });
+      return this.civ.trigger('unit:disband', {
+        unit: this,
+        civ: this.civ,
+        hex: this.hex
+      });
     }
   });
 
-  Civ.City = (function() {
-
-    function City(name, opts) {
-      this.population = opts.popultion || 10;
-      this.health = 1.0;
-      this.supplyOfFood = 0;
-      this.name = name;
-      this.hexset = new Civ.HexSet;
+  Civ.SettlerUnit = Civ.SingleUnit({
+    cost: 25,
+    buildCity: function() {
+      return new Civ.City({
+        name: this.civ.player.decideName("Name for city?"),
+        civ: this.civ,
+        hex: this.hex
+      });
     }
+  });
 
-    City.prototype.calcGold = function() {
+  Civ.City = Backbone.model.extend({
+    defaults: {
+      population: 1.0,
+      health: 1.0,
+      supplyOfFood: 0,
+      name: "Unnamed City",
+      progressProd: 0,
+      currentProd: null
+    },
+    initialize: function(opts) {
+      if (this.current.getRemaining() > pts) {
+        this.current.progress += pts;
+        return;
+      }
+      this.hex = opts.hex;
+      this.civ = opts.civ;
+      this.hex.trigger('city:create', {
+        city: this,
+        civ: this.civ,
+        hex: this.hex
+      }, this);
+      return this.civ.trigger('city:create', {
+        city: this,
+        civ: this.civ,
+        hex: this.hex
+      });
+    },
+    calcGold: function() {
       return this.hexset.providesGold();
-    };
-
-    City.prototype.calcProd = function() {
+    },
+    calcProd: function() {
       return this.hexset.providesProd();
-    };
-
-    City.prototype.calcFood = function() {
+    },
+    calcFood: function() {
       return this.hexset.providesFood();
-    };
-
-    City.prototype.calcScience = function() {};
-
-    City.prototype.tick = function() {
-      return this.supplyOfFood += this.calculateFood();
-    };
-
-    return City;
-
-  })();
+    },
+    calcScience: function() {},
+    tick: function() {
+      var newProd;
+      this.set({
+        supplyOfFood: this.get('supplyOfFood') + this.calcFood()
+      });
+      newProd = this.get('progressProd') + this.calcProd();
+      if (newProd >= this.currentProd.cost) {
+        new this.currentProd({
+          hex: this.hex,
+          city: this,
+          civ: this.civ
+        });
+        return this.set({
+          progressProd: newProd - this.currentProd.cost
+        });
+      } else {
+        return this.set({
+          progressProd: this.get('progressProd') + newProd
+        });
+      }
+    }
+  });
 
   Civ.Government = Backbone.Model.extend({
     initialize: function(opts) {
@@ -423,8 +469,14 @@
       return this.units = [];
     },
     registerUnit: function(unit) {
-      this.player.registerUnit(unit);
-      return this.units.push(unit);
+      this.units.push(unit);
+      return this.player.registerUnit(unit);
+    },
+    registerCity: function(city) {
+      this.cities.push(city);
+      return city.on('unit:create', (function(evt) {
+        return this.registerUnit(evt.unit);
+      }), this);
     },
     getCities: function() {
       return this.cities;
@@ -448,7 +500,11 @@
   });
 
   Civ.Player = Backbone.Model.extend({
-    initialize: function(opts) {}
+    initialize: function(opts) {
+      return {
+        civ: this.civ
+      };
+    }
   });
 
   Civ.HumanPlayer = Civ.Player.extend({

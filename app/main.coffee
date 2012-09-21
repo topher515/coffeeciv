@@ -49,10 +49,6 @@ Civ.Hex = Backbone.Model.extend # TODO: Convert this back into coffeescript styl
     @world.registerHex @
     _.bindAll @
 
-  registerUnit:(unit)->
-    @trigger 'unit:create', (unit:unit, hex:@)
-    @trigger 'unit:arrive', (unit:unit, hex:@)
-
   getNames: ->
     return ['n','ne','se','s','sw','nw']
 
@@ -136,8 +132,7 @@ class Civ.HexSet
 
 Civ.HexWorld = Backbone.Model.extend
   defaults:
-    size: 100
-    width: 10
+    width: 20
     height: 10
 
   initialize: (options)->
@@ -250,8 +245,11 @@ Civ.SingleUnit = Backbone.Model.extend
   initialize: (options)->
     @hex = options.hex
     @civ = options.civ
-    @hex.registerUnit @
-    @civ.registerUnit @
+
+    @hex.trigger 'unit:create', (unit:@, hex:@hex)
+    @hex.trigger 'unit:arrive', (unit:@, hex:@hex)
+
+    @civ.registerUnit unit
 
 
   validMove: (newHex)->
@@ -269,18 +267,46 @@ Civ.SingleUnit = Backbone.Model.extend
   move: (dir)->
     @moveTo @hex[dir]
 
+  disband: ->
+    @hex.trigger 'unit:leave', {unit:@, hex:@hex}
+    @civ.trigger 'unit:disband', {unit:@, civ:@civ, hex:@hex}
 
 
-class Civ.City
+Civ.SettlerUnit = Civ.SingleUnit
   
-  constructor: (name,opts)->
-    @population = opts.popultion or 10
+  cost: 25
 
-    @health = 1.0
-    @supplyOfFood = 0
-    @name = name
+  buildCity: ->
+    new Civ.City {
+        name: @civ.player.decideName("Name for city?"), 
+        civ:@civ,
+        hex:@hex
+      }
 
-    @hexset = new Civ.HexSet # TODO Figure out what goes here!
+
+
+Civ.City = Backbone.model.extend
+
+  defaults:
+    population: 1.0
+    health: 1.0
+    supplyOfFood: 0
+    name: "Unnamed City"
+
+    progressProd: 0
+    currentProd: null
+
+  initialize: (opts)->
+
+    if @current.getRemaining() > pts
+      @current.progress += pts
+      return
+
+    #@hexset = new Civ.HexSet # TODO Figure out what goes here!
+    @hex = opts.hex
+    @civ = opts.civ
+    @hex.trigger 'city:create', {city:@, civ:@civ, hex:@hex}, @
+    @civ.trigger 'city:create', {city:@, civ:@civ, hex:@hex}
 
 
   calcGold: -> @hexset.providesGold()
@@ -290,8 +316,18 @@ class Civ.City
 
 
   tick: ->
-    @supplyOfFood += @calculateFood()
+    @set {
+        supplyOfFood: @get('supplyOfFood') + @calcFood()
+      }
 
+    # Do Progress calculations
+    newProd = @get('progressProd') + @calcProd()
+    if newProd >= @currentProd.cost
+      new @currentProd {hex:@hex, city:@, civ:@civ}
+      @set progressProd: newProd - @currentProd.cost
+
+    else
+      @set progressProd: @get('progressProd') + newProd
 
 
 # Goverment
@@ -324,13 +360,16 @@ Civ.Civilization = Backbone.Model.extend
     @cities = []
     @units = []
 
-  registerUnit: (unit)->
-    @player.registerUnit unit
+  registerUnit:(unit)->
     @units.push unit
+    @player.registerUnit unit
+
+  registerCity:(city)->
+    @cities.push city
+    city.on 'unit:create', ((evt)-> @registerUnit(evt.unit)), @
 
   getCities: -> @cities
   getUnits: -> @units
-
 
   calcScience: ->
     _.reduce @getCities(), ((memo,city)-> memo+city.calculateScience()), 0
@@ -347,6 +386,7 @@ Civ.Civilization = Backbone.Model.extend
 
 Civ.Player = Backbone.Model.extend
   initialize:(opts)->
+    civ: @civ
 
 Civ.HumanPlayer = Civ.Player.extend
   registerUnit:(unit)->
