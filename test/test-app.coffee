@@ -6,12 +6,14 @@ $ ->
   ctx.world = new Civ.HexWorld (size:40, ux:ux)
   world.buildHexesInGrid()
 
-  ctx.human = new Civ.HumanPlayer 
-  new Civ.UI.HumanController humanPlayer:human, ux:ux
-
   # Build world view
   ctx.worldView = new Civ.UI.HexWorldView (model:world, ux:ux)
   worldView.render()
 
-  ctx.civ = new Civ.Civilization (name:"Egyptians", player:human)
-  ctx.unit = new Civ.SingleUnit hex:world.root, civ:civ
+  ctx.civ = new Civ.Civilization (name:"Egyptians")
+  ctx.unit = new Civ.SettlerUnit hex:world.root, civ:civ
+
+  ctx.human = new Civ.HumanPlayer civ:civ
+  ctx.game = new Civ.Game players:[human]
+  new Civ.UI.HumanController humanPlayer:human, ux:ux, game:game
+

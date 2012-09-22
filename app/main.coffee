@@ -283,6 +283,7 @@ Civ.SettlerUnit = Civ.SingleUnit.extend
         civ:@civ,
         hex:@hex
       }
+    @disband()
 
 
 
@@ -298,10 +299,6 @@ Civ.City = Backbone.Model.extend
     currentProd: null
 
   initialize: (opts)->
-
-    if @current.getRemaining() > pts
-      @current.progress += pts
-      return
 
     #@hexset = new Civ.HexSet # TODO Figure out what goes here!
     @hex = opts.hex
@@ -351,7 +348,6 @@ Civ.Civilization = Backbone.Model.extend
     name: "Unnamed"
 
   initialize: (attrs)->
-    @player = attrs.player
     # Gov
     @government = new Civ.Tribal civ:@
     # Sci
@@ -363,34 +359,81 @@ Civ.Civilization = Backbone.Model.extend
 
   registerUnit:(unit)->
     @units.push unit
-    @player.registerUnit unit
+    @trigger 'unit:create', {civ:@,unit:unit,hex:unit.hex}
 
   registerCity:(city)->
     @cities.push city
     city.on 'unit:create', ((evt)-> @registerUnit(evt.unit)), @
 
-  getCities: -> @cities
-  getUnits: -> @units
-
   calcScience: ->
-    _.reduce @getCities(), ((memo,city)-> memo+city.calculateScience()), 0
+    _.reduce @cities, ((memo,city)-> memo+city.calculateScience()), 0
 
   tickScience: ->
     sci = @calcScience()
     @scienceGraph.doProgress sci
 
+  tickProd: ->
+    for city in @cities
+      city.tick()
 
   tick: ->
-    tickScience()
+    @tickScience()
+    @tickProd()
 
 
 
 Civ.Player = Backbone.Model.extend
   initialize:(opts)->
-    civ: @civ
+    @civ = opts.civ
+    @civ.player = @
+    @civ.on 'unit:create', @handleUnitCreate
+
+  handleUnitCreate:(evt)->
 
 Civ.HumanPlayer = Civ.Player.extend
-  registerUnit:(unit)->
+  handleUnitCreate:(unit)->
     @trigger 'selectable:registered', unit
 
-  
+  decideName:(promptText)->
+    prompt promptText
+
+  turnComplete:->
+    @trigger 'player:turnComplete', {player:@}
+
+
+Civ.ComputerPlayer = Civ.Player.extend()
+
+
+Civ.Game = Backbone.Model.extend
+  defaults:
+    turn:1
+
+  initialize:(opts)->
+    @players = new (Backbone.Collection.extend(model:Civ.Player))
+    @players.reset opts.players
+    @currentPlayer = 0
+    @players.on 'player:turnComplete', @handlePlayerTurnComplete, @
+
+  handlePlayerTurnComplete:->
+    @currentPlayer += 1
+
+    if @currentPlayer == @players.length
+      @currentPlayer = 0
+      @set turn:(@get 'turn')+1
+      @trigger 'game:turnComplete'
+
+    @getCurrentPlayer().civ.tick()
+
+
+  getCurrentPlayer:->
+    @players.at @currentPlayer
+
+
+
+
+
+
+
+
+
+

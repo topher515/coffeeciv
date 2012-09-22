@@ -372,11 +372,12 @@
   Civ.SettlerUnit = Civ.SingleUnit.extend({
     cost: 25,
     buildCity: function() {
-      return new Civ.City({
+      new Civ.City({
         name: this.civ.player.decideName("Name for city?"),
         civ: this.civ,
         hex: this.hex
       });
+      return this.disband();
     }
   });
 
@@ -390,10 +391,6 @@
       currentProd: null
     },
     initialize: function(opts) {
-      if (this.current.getRemaining() > pts) {
-        this.current.progress += pts;
-        return;
-      }
       this.hex = opts.hex;
       this.civ = opts.civ;
       this.hex.trigger('city:create', {
@@ -459,7 +456,6 @@
       name: "Unnamed"
     },
     initialize: function(attrs) {
-      this.player = attrs.player;
       this.government = new Civ.Tribal({
         civ: this
       });
@@ -470,7 +466,11 @@
     },
     registerUnit: function(unit) {
       this.units.push(unit);
-      return this.player.registerUnit(unit);
+      return this.trigger('unit:create', {
+        civ: this,
+        unit: unit,
+        hex: unit.hex
+      });
     },
     registerCity: function(city) {
       this.cities.push(city);
@@ -478,14 +478,8 @@
         return this.registerUnit(evt.unit);
       }), this);
     },
-    getCities: function() {
-      return this.cities;
-    },
-    getUnits: function() {
-      return this.units;
-    },
     calcScience: function() {
-      return _.reduce(this.getCities(), (function(memo, city) {
+      return _.reduce(this.cities, (function(memo, city) {
         return memo + city.calculateScience();
       }), 0);
     },
@@ -494,22 +488,72 @@
       sci = this.calcScience();
       return this.scienceGraph.doProgress(sci);
     },
+    tickProd: function() {
+      var city, _i, _len, _ref, _results;
+      _ref = this.cities;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        city = _ref[_i];
+        _results.push(city.tick());
+      }
+      return _results;
+    },
     tick: function() {
-      return tickScience();
+      this.tickScience();
+      return this.tickProd();
     }
   });
 
   Civ.Player = Backbone.Model.extend({
     initialize: function(opts) {
-      return {
-        civ: this.civ
-      };
-    }
+      this.civ = opts.civ;
+      this.civ.player = this;
+      return this.civ.on('unit:create', this.handleUnitCreate);
+    },
+    handleUnitCreate: function(evt) {}
   });
 
   Civ.HumanPlayer = Civ.Player.extend({
-    registerUnit: function(unit) {
+    handleUnitCreate: function(unit) {
       return this.trigger('selectable:registered', unit);
+    },
+    decideName: function(promptText) {
+      return prompt(promptText);
+    },
+    turnComplete: function() {
+      return this.trigger('player:turnComplete', {
+        player: this
+      });
+    }
+  });
+
+  Civ.ComputerPlayer = Civ.Player.extend();
+
+  Civ.Game = Backbone.Model.extend({
+    defaults: {
+      turn: 1
+    },
+    initialize: function(opts) {
+      this.players = new (Backbone.Collection.extend({
+        model: Civ.Player
+      }));
+      this.players.reset(opts.players);
+      this.currentPlayer = 0;
+      return this.players.on('player:turnComplete', this.handlePlayerTurnComplete, this);
+    },
+    handlePlayerTurnComplete: function() {
+      this.currentPlayer += 1;
+      if (this.currentPlayer === this.players.length) {
+        this.currentPlayer = 0;
+        this.set({
+          turn: (this.get('turn')) + 1
+        });
+        this.trigger('game:turnComplete');
+      }
+      return this.getCurrentPlayer().civ.tick();
+    },
+    getCurrentPlayer: function() {
+      return this.players.at(this.currentPlayer);
     }
   });
 

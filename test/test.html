@@ -5,12 +5,14 @@
     <script src="../lib/jquery-ui.min.js"></script>
     <script src="../lib/underscore.js"></script>
     <script src="../lib/backbone.js"></script>
+    <script src="../lib/bootstrap.js"></script>
     <script src="../lib/mousetrap.min.js"></script>
     <script src="../app/science.js"></script>
     <script src="../app/main.js"></script>
     <script src="../app/ui.js"></script>
     <script src="test-app.js"></script>
 
+    <link rel="stylesheet" type="text/css" href="../assets/bootstrap.min.css" />
     <link rel="stylesheet" type="text/css" href="../assets/ui.css" />
   </head>
   <body>
@@ -19,6 +21,20 @@
       <!-- span class="contents"></span -->
       <div class="hex-part hex-part-1"></div>
       <div class="hex-part hex-part-2"></div>
+    </script>
+
+    <script type="text/template" id="city-meta-tpl">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+          <h3><%= name %></h3>
+        </div>
+        <div class="modal-body">
+          <p>Currently producing: <%= currentProd %></p>
+        </div>
+        <div class="modal-footer">
+          <a href="#" class="btn">Close</a>
+          <a href="#" class="btn btn-primary">Save changes</a>
+        </div>
     </script>
 
 
@@ -67,6 +83,15 @@
         <div></div>
     </div>
 </div -->​
+
+    <div id="city-meta-modal" class="modal hide fade">
+
+    </div>
+
+    <div id="controls">
+      <button class="btn btn-danger turn-complete">End Turn</button>
+      <label class="label">Turn: <span class="turn"></span></label>
+    </div>
 
     <div id="hexworld">
 

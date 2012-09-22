@@ -21,6 +21,21 @@ body {
   height: 25.9807621134px;
   margin: 3px;
 }
+.city {
+  position: absolute;
+  left: 0px;
+  bottom: 0px;
+  background-color: gray;
+  width: 15px;
+  height: 25.9807621134px;
+}
+#controls {
+  width: 300px;
+  height: 100px;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
 .hexrow {
   white-space: nowrap;
   /*right/left margin set at (( width of child div x sin(30) ) / 2) 

@@ -134,7 +134,8 @@
         this.$el.addClass('root');
       }
       this.worldView.registerHexView(this);
-      return this.model.on('unit:create', this.handleUnitCreate, this);
+      this.model.on('unit:create', this.handleUnitCreate, this);
+      return this.model.on('city:create', this.handleCityCreate, this);
     },
     handleUnitCreate: function(evt) {
       var sv;
@@ -142,6 +143,13 @@
         model: evt.unit
       }));
       this.ux.registerSelectable(sv);
+      return this.render();
+    },
+    handleCityCreate: function(evt) {
+      var sv;
+      sv = this.setSubview(new UI.CityView({
+        model: evt.city
+      }));
       return this.render();
     },
     render: function() {
@@ -241,6 +249,24 @@
     }
   });
 
+  UI.CityView = UI.View.extend({
+    events: {
+      "click": "handleOpenMetaView"
+    },
+    className: "city",
+    metaTemplate: tpl('#city-meta-tpl'),
+    handleOpenMetaView: function() {
+      return $('#city-meta-modal').html(this.metaTemplate(this.model.toJSON())).modal({
+        show: true
+      });
+    }
+  });
+
+  UI.CityMetaView = UI.View.extend({
+    el: '#city-meta-modal',
+    className: "modal hide fade"
+  });
+
   UI.UXController = UI.View.extend({
     initialize: function(opts) {
       return this.selectables = [];
@@ -258,21 +284,34 @@
   });
 
   UI.HumanController = UI.View.extend({
+    el: '#controls',
+    events: {
+      "click .turn-complete": "handleTurnComplete"
+    },
     initialize: function(opts) {
+      this.game = opts.game;
       this.world = opts.world;
       this.humanPlayer = opts.humanPlayer;
       this.ux = opts.ux;
       this.ux.on('select:unit', this.handleSelectUnit, this);
       this.ux.on('deselect:unit', this.handleDeselectUnit, this);
+      this.game.on('game:turnComplete', (function() {
+        return this.$('.turn').html(this.game.get('turn'));
+      }), this);
       this.selectedUnitView = null;
+      _.bindAll(this);
       return this.initKeyCommands();
+    },
+    handleTurnComplete: function() {
+      return this.humanPlayer.turnComplete();
     },
     move: function(dir) {
       var _ref;
       return (_ref = this.selectedUnitView) != null ? _ref.model.move(dir) : void 0;
     },
     initKeyCommands: function() {
-      var self;
+      var self,
+        _this = this;
       self = this;
       Mousetrap.bind("esc", function() {
         return self.handleDeselectUnit();
@@ -292,8 +331,12 @@
       Mousetrap.bind("right up", function() {
         return self.move("ne");
       });
-      return Mousetrap.bind("right down", function() {
+      Mousetrap.bind("right down", function() {
         return self.move("se");
+      });
+      return Mousetrap.bind("b", function() {
+        var _ref;
+        return (_ref = _this.selectedUnitView) != null ? _ref.model.buildCity() : void 0;
       });
     },
     handleSelectUnit: function(evt) {
@@ -306,7 +349,10 @@
     },
     handleDeselectUnit: function(evt) {
       var _ref;
-      return (_ref = this.selectedUnitView) != null ? _ref.$el.removeClass('selected') : void 0;
+      if ((_ref = this.selectedUnitView) != null) {
+        _ref.$el.removeClass('selected');
+      }
+      return this.selectedUnitView = null;
     }
   });
 

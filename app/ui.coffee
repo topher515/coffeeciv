@@ -91,6 +91,7 @@ UI.HexView = UI.View.extend
     @worldView.registerHexView @
 
     @model.on 'unit:create', @handleUnitCreate, @
+    @model.on 'city:create', @handleCityCreate, @
     #@model.on 'unit:arrive', @handleUnitArrive, @
     #@model.on 'unit:leave', @handleUnitLeave, @
 
@@ -98,6 +99,10 @@ UI.HexView = UI.View.extend
   handleUnitCreate:(evt)->
     sv = @setSubview (new UI.SingleUnitView model:evt.unit)
     @ux.registerSelectable sv
+    @render()
+
+  handleCityCreate:(evt)->
+    sv = @setSubview (new UI.CityView model:evt.city)
     @render()
 
   render:->
@@ -185,6 +190,24 @@ UI.HexWorldView = UI.View.extend
     @
 
 
+UI.CityView = UI.View.extend
+  events:
+    "click":"handleOpenMetaView"
+  className:"city"
+
+  metaTemplate: tpl '#city-meta-tpl'
+
+  handleOpenMetaView:->
+    $('#city-meta-modal').html(@metaTemplate @model.toJSON())
+        .modal show:true
+
+
+
+UI.CityMetaView = UI.View.extend
+  el: '#city-meta-modal'
+  className:"modal hide fade"
+
+
 UI.UXController = UI.View.extend
   initialize:(opts)->
     @selectables = []
@@ -201,7 +224,12 @@ UI.UXController = UI.View.extend
 
 
 UI.HumanController = UI.View.extend
+  el:'#controls'
+  events:
+    "click .turn-complete":"handleTurnComplete"
+
   initialize:(opts)->
+    @game = opts.game
     @world = opts.world
     @humanPlayer = opts.humanPlayer
     @ux = opts.ux
@@ -209,9 +237,16 @@ UI.HumanController = UI.View.extend
     @ux.on 'select:unit', @handleSelectUnit, @
     @ux.on 'deselect:unit', @handleDeselectUnit, @
 
+    @game.on 'game:turnComplete', (-> @$('.turn').html( @game.get 'turn' )), @
+
+
     @selectedUnitView = null
 
+    _.bindAll @
     @initKeyCommands()
+
+  handleTurnComplete:->
+    @humanPlayer.turnComplete()
 
   move:(dir)->
     @selectedUnitView?.model.move dir
@@ -235,6 +270,10 @@ UI.HumanController = UI.View.extend
     Mousetrap.bind "right down", ->
       self.move "se"
 
+    Mousetrap.bind "b", =>
+      @selectedUnitView?.model.buildCity()
+
+
   handleSelectUnit:(evt)->
     @selectedUnitView?.$el.removeClass 'selected'
     @selectedUnitView = evt.view
@@ -242,4 +281,5 @@ UI.HumanController = UI.View.extend
 
   handleDeselectUnit:(evt)->
     @selectedUnitView?.$el.removeClass 'selected'
+    @selectedUnitView = null
 
