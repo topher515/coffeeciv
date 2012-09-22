@@ -327,7 +327,7 @@
         unit: this,
         hex: this.hex
       });
-      return this.civ.registerUnit(unit);
+      return this.civ.registerUnit(this);
     },
     validMove: function(newHex) {
       return Boolean(newHex);
@@ -339,7 +339,7 @@
       }
       oldHex = this.hex;
       this.hex = newHex;
-      this.trigger('unit:move', {
+      this.hex.world.trigger('unit:move', {
         to: newHex,
         from: oldHex,
         unit: this
@@ -369,7 +369,7 @@
     }
   });
 
-  Civ.SettlerUnit = Civ.SingleUnit({
+  Civ.SettlerUnit = Civ.SingleUnit.extend({
     cost: 25,
     buildCity: function() {
       return new Civ.City({
@@ -380,7 +380,7 @@
     }
   });
 
-  Civ.City = Backbone.model.extend({
+  Civ.City = Backbone.Model.extend({
     defaults: {
       population: 1.0,
       health: 1.0,

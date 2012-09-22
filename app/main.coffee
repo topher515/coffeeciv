@@ -249,7 +249,7 @@ Civ.SingleUnit = Backbone.Model.extend
     @hex.trigger 'unit:create', (unit:@, hex:@hex)
     @hex.trigger 'unit:arrive', (unit:@, hex:@hex)
 
-    @civ.registerUnit unit
+    @civ.registerUnit @
 
 
   validMove: (newHex)->
@@ -260,7 +260,8 @@ Civ.SingleUnit = Backbone.Model.extend
       throw "Invalid Movement Direction"
     oldHex = @hex 
     @hex = newHex
-    @trigger 'unit:move', (to:newHex, from:oldHex, unit:@)
+    #@trigger 'unit:move', (to:newHex, from:oldHex, unit:@)
+    @hex.world.trigger 'unit:move', (to:newHex, from:oldHex, unit:@)
     oldHex.trigger 'unit:leave', (unit:@, hex:oldHex)
     newHex.trigger 'unit:arrive', (unit:@, hex:newHex )
 
@@ -272,7 +273,7 @@ Civ.SingleUnit = Backbone.Model.extend
     @civ.trigger 'unit:disband', {unit:@, civ:@civ, hex:@hex}
 
 
-Civ.SettlerUnit = Civ.SingleUnit
+Civ.SettlerUnit = Civ.SingleUnit.extend
   
   cost: 25
 
@@ -285,7 +286,7 @@ Civ.SettlerUnit = Civ.SingleUnit
 
 
 
-Civ.City = Backbone.model.extend
+Civ.City = Backbone.Model.extend
 
   defaults:
     population: 1.0

@@ -12,6 +12,8 @@
 
   tplCache = {};
 
+  UI.uxDispatcher = _.clone(Backbone.Events);
+
   tpl = function(selector) {
     return function(tplCtx) {
       var $t;
@@ -80,10 +82,19 @@
       }
       return _results;
     },
-    bubble: function(obj, evtName) {
-      return obj.on(evtName, (function(evt) {
-        return this.trigger(evtName, evt);
-      }), this);
+    bubble: function(obj, evtNames) {
+      var evtName, _i, _len, _results;
+      if (!_.isArray(evtNames)) {
+        evtNames = [evtNames];
+      }
+      _results = [];
+      for (_i = 0, _len = evtNames.length; _i < _len; _i++) {
+        evtName = evtNames[_i];
+        _results.push(obj.on(evtName, (function(evt) {
+          return this.trigger(evtName, evt);
+        }), this));
+      }
+      return _results;
     },
     unbubble: function(obj, evtName) {
       return obj.off(evtName);
@@ -116,26 +127,21 @@
     className: "hex",
     initialize: function(options) {
       this.ux = options.ux;
+      this.worldView = options.worldView;
       this.$el.addClass(this.model.get('appearance'));
       this.$el.attr('id', 'hex-' + this.model.id);
       if (this.model.get('isRoot')) {
         this.$el.addClass('root');
       }
-      this.model.on('unit:arrive', this.handleUnitArrive, this);
-      return this.model.on('unit:leave', this.handleUnitLeave, this);
+      this.worldView.registerHexView(this);
+      return this.model.on('unit:create', this.handleUnitCreate, this);
     },
-    handleUnitArrive: function(evt) {
+    handleUnitCreate: function(evt) {
       var sv;
       sv = this.setSubview(new UI.SingleUnitView({
         model: evt.unit
       }));
       this.ux.registerSelectable(sv);
-      return this.render();
-    },
-    handleUnitLeave: function(evt) {
-      var sv;
-      sv = this.removeSubview(evt.unit);
-      this.ux.unregisterSelectable(sv);
       return this.render();
     },
     render: function() {
@@ -148,13 +154,20 @@
     className: "hexrow",
     initialize: function(options) {
       this.rootHex = options.rootHex;
-      return this.ux = options.ux;
+      this.ux = options.ux;
+      return this.worldView = options.worldView;
     },
     newHexView: function(model) {
-      return new UI.HexView({
+      var hexView;
+      hexView = new UI.HexView({
         model: model,
-        ux: this.ux
+        ux: this.ux,
+        worldView: this.worldView
       });
+      this.bubble(hexView, 'unit:create');
+      this.bubble(hexView, 'unit:arrive');
+      this.bubble(hexView, 'unit:leave');
+      return hexView;
     },
     render: function() {
       var appender, prepender, self;
@@ -178,14 +191,37 @@
     el: '#hexworld',
     initialize: function(options) {
       this.rootHex = this.model.root;
-      return this.ux = options.ux;
+      this.ux = options.ux;
+      this.hexViewByModel = {};
+      this.model.on('unit:move', this.handleUnitMove, this);
+      return _.bindAll(this);
+    },
+    registerHexView: function(hexView) {
+      return this.hexViewByModel[hexView.model.cid] = hexView;
+    },
+    getHexView: function(model) {
+      return this.hexViewByModel[model.cid];
+    },
+    handleUnitMove: function(evt) {
+      var from, to, unitView;
+      from = this.getHexView(evt.from);
+      to = this.getHexView(evt.to);
+      unitView = from.removeSubview(evt.unit);
+      to.setSubview(unitView);
+      from.render();
+      return to.render();
     },
     newHexRowView: function(model) {
-      var row;
-      return row = new UI.HexRowView({
+      var rowView;
+      rowView = new UI.HexRowView({
         rootHex: model,
-        ux: this.ux
+        ux: this.ux,
+        worldView: this
       });
+      this.bubble(rowView, 'unit:create');
+      this.bubble(rowView, 'unit:arrive');
+      this.bubble(rowView, 'unit:leave');
+      return rowView;
     },
     render: function() {
       var appender, prepender, self;

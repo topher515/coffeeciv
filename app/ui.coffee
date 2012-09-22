@@ -5,6 +5,9 @@ Utils = Civ.Utils or= {}
 
 tplCache = {}
 
+
+UI.uxDispatcher = _.clone(Backbone.Events)
+
 tpl = (selector)->
   # Return a function which will return a cached version
   # of the template
@@ -45,8 +48,11 @@ UI.View = Backbone.View.extend
     fn = (sv)-> $elem.append sv.render().el
     fn sv for sv in @getSubviews()
 
-  bubble: (obj, evtName)->
-    obj.on evtName, ((evt)-> @trigger evtName, evt), @
+  bubble: (obj, evtNames)->
+    if not _.isArray evtNames
+      evtNames = [evtNames]
+    for evtName in evtNames
+      obj.on evtName, ((evt)-> @trigger evtName, evt), @
 
   unbubble: (obj, evtName)->
     obj.off evtName
@@ -71,24 +77,27 @@ UI.SingleUnitView = UI.SelectableView.extend
 UI.HexView = UI.View.extend
   template: tpl '#hex-tpl'
   className:"hex"
+
+
   initialize:(options)->
     @ux = options.ux
+    @worldView = options.worldView
+
     @$el.addClass @model.get 'appearance'
     @$el.attr('id','hex-' + @model.id)
     if @model.get 'isRoot'
       @$el.addClass 'root'
 
-    @model.on 'unit:arrive', @handleUnitArrive, @
-    @model.on 'unit:leave', @handleUnitLeave, @
+    @worldView.registerHexView @
 
-  handleUnitArrive:(evt)->
+    @model.on 'unit:create', @handleUnitCreate, @
+    #@model.on 'unit:arrive', @handleUnitArrive, @
+    #@model.on 'unit:leave', @handleUnitLeave, @
+
+
+  handleUnitCreate:(evt)->
     sv = @setSubview (new UI.SingleUnitView model:evt.unit)
     @ux.registerSelectable sv
-    @render()
-
-  handleUnitLeave:(evt)->
-    sv = @removeSubview evt.unit
-    @ux.unregisterSelectable sv
     @render()
 
   render:->
@@ -101,15 +110,20 @@ UI.HexRowView = UI.View.extend
   initialize:(options)->
     @rootHex = options.rootHex
     @ux = options.ux
+    @worldView = options.worldView
 
   newHexView: (model)->
-    new UI.HexView (model:model, ux:@ux)
+    hexView = new UI.HexView (model:model, ux:@ux, worldView:@worldView)
+    @bubble hexView, 'unit:create'
+    @bubble hexView, 'unit:arrive'
+    @bubble hexView, 'unit:leave'
+    hexView
 
   render:->
     # render methodology
     #   r -> (ne se)! -> (nw sw)!
     self = @
-    @$el.html('')
+    @$el.html ''
     appender = (hex)->
       self.$el.append self.newHexView(hex).render().el
     prepender = (hex)->
@@ -125,11 +139,33 @@ UI.HexWorldView = UI.View.extend
   initialize:(options)->
     @rootHex = @model.root
     @ux = options.ux
+    @hexViewByModel = {}
 
+    # Bubbled up from hexView
+    @model.on 'unit:move', @handleUnitMove, @
+    _.bindAll @
 
+  registerHexView: (hexView)->
+    @hexViewByModel[hexView.model.cid] = hexView
+
+  getHexView:(model)->
+    @hexViewByModel[model.cid]
+
+  handleUnitMove: (evt)->
+    from = @getHexView(evt.from)
+    to = @getHexView(evt.to)
+    unitView = from.removeSubview evt.unit
+    to.setSubview unitView
+    from.render()
+    to.render()
 
   newHexRowView: (model)->
-    row = new UI.HexRowView (rootHex:model, ux:@ux)
+    rowView = new UI.HexRowView (rootHex:model, ux:@ux, worldView:@)
+    @bubble rowView, 'unit:create'
+    @bubble rowView, 'unit:arrive'
+    @bubble rowView, 'unit:leave'
+    rowView
+
 
   render:->
     # render methodology
@@ -150,7 +186,6 @@ UI.HexWorldView = UI.View.extend
 
 
 UI.UXController = UI.View.extend
-
   initialize:(opts)->
     @selectables = []
 
@@ -166,7 +201,6 @@ UI.UXController = UI.View.extend
 
 
 UI.HumanController = UI.View.extend
-
   initialize:(opts)->
     @world = opts.world
     @humanPlayer = opts.humanPlayer
@@ -208,3 +242,4 @@ UI.HumanController = UI.View.extend
 
   handleDeselectUnit:(evt)->
     @selectedUnitView?.$el.removeClass 'selected'
+
